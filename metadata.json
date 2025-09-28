@@ -1,0 +1,5 @@
+{
+  "name": "Hinglish AI Caption ViralEditz",
+  "description": "An AI-powered tool to automatically generate Hinglish captions in .srt format from any uploaded audio file. Perfect for content creators looking to add subtitles to their videos.",
+  "requestFramePermissions": []
+}
