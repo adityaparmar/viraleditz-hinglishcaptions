@@ -29,10 +29,10 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, currentFile }) =>
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     handleDragEvents(e, false);
     const file = e.dataTransfer.files?.[0] || null;
-    if (file && file.type.startsWith('audio/')) {
+    if (file && (file.type.startsWith('audio/') || file.type.startsWith('video/'))) {
         onFileSelect(file);
     } else {
-        alert("Please drop an audio file.");
+        alert("Please drop an audio or video file.");
     }
   };
 
@@ -57,7 +57,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, currentFile }) =>
       <input
         ref={fileInputRef}
         type="file"
-        accept="audio/*"
+        accept="audio/*,video/*"
         onChange={handleFileChange}
         className="hidden"
       />
@@ -71,7 +71,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, currentFile }) =>
         <div className="text-center text-gray-400">
             <UploadIcon className="w-12 h-12 mx-auto mb-4" />
             <p className="font-semibold text-gray-300">Click to upload or drag & drop</p>
-            <p className="text-sm">Supports MP3, WAV, M4A, etc.</p>
+            <p className="text-sm">Supports MP3, WAV, MP4, MOV, etc.</p>
         </div>
       )}
     </div>
