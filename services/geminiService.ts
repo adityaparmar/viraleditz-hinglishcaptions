@@ -9,19 +9,11 @@ if (!API_KEY) {
 
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 
-const PROMPT = `
-You are an expert audio transcriber specializing in Hinglish. Your task is to transcribe the provided audio file and format the output as a SubRip Text (.srt) file with **one word per caption entry**.
+const createPrompt = (wordsPerLine: number): string => {
+  const wordOrWords = wordsPerLine === 1 ? 'word' : 'words';
 
-Instructions:
-1.  Listen to the audio carefully.
-2.  Transcribe the speech into Hinglish (Hindi written using the Roman alphabet).
-3.  Create accurate timestamps for **each individual word**.
-4.  Format the entire output strictly as an SRT file. Each entry must contain only a single word.
-5.  Ensure sequential numbering, precise timestamps for each word (HH:MM:SS,ms --> HH:MM:SS,ms), and the transcribed word.
-6.  Do not include any other text, explanations, or notes in your response. The output must be only the raw SRT content.
-
-Example of expected output format for the phrase "Hello, aap kaise hain?":
-1
+  const exampleText = wordsPerLine === 1
+      ? `1
 00:00:01,234 --> 00:00:01,567
 Hello,
 
@@ -35,11 +27,36 @@ kaise
 
 4
 00:00:02,600 --> 00:00:03,100
-hain?
-`;
+hain?`
+      : `1
+00:00:01,234 --> 00:00:02,500
+Hello, aap kaise
 
-export const generateSrtCaptions = async (audioBase64: string, mimeType: string): Promise<string> => {
+2
+00:00:02,600 --> 00:00:04,100
+hain? This is an example.`;
+
+  return `
+You are an expert audio transcriber specializing in Hinglish. Your task is to transcribe the provided audio file and format the output as a SubRip Text (.srt) file.
+
+Instructions:
+1.  Listen to the audio carefully.
+2.  Transcribe the speech into Hinglish (Hindi written using the Roman alphabet).
+3.  Create caption entries where each entry contains **approximately ${wordsPerLine} ${wordOrWords}**. Try to break lines at natural pauses if possible, but prioritize keeping the word count close to the requested number.
+4.  Create accurate timestamps for each caption entry.
+5.  Format the entire output strictly as an SRT file. Each entry must contain the sequential number, timestamp, and the transcribed text.
+6.  Do not include any other text, explanations, or notes in your response. The output must be only the raw SRT content.
+
+Example of expected output format (this is just a guide, the number of words per line in your output should be around ${wordsPerLine}):
+${exampleText}
+`;
+};
+
+
+export const generateSrtCaptions = async (audioBase64: string, mimeType: string, wordsPerLine: number): Promise<string> => {
   try {
+    const PROMPT = createPrompt(wordsPerLine);
+
     const audioPart = {
       inlineData: {
         data: audioBase64,

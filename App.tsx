@@ -13,6 +13,7 @@ const App: React.FC = () => {
   const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
   const [srtCaptions, setSrtCaptions] = useState<string>('');
   const [error, setError] = useState<string>('');
+  const [wordsPerLine, setWordsPerLine] = useState<number>(1);
 
   const handleFileSelect = (file: File | null) => {
     setAudioFile(file);
@@ -24,7 +25,6 @@ const App: React.FC = () => {
   const handleGenerate = useCallback(async () => {
     if (!audioFile) {
       setError('Please select an audio or video file first.');
-      setStatus(AppStatus.ERROR);
       return;
     }
 
@@ -38,16 +38,16 @@ const App: React.FC = () => {
         throw new Error('Invalid file type. Please upload an audio or video file.');
       }
       
-      const captions = await generateSrtCaptions(base64, mimeType);
+      const captions = await generateSrtCaptions(base64, mimeType, wordsPerLine);
       setSrtCaptions(captions);
       setStatus(AppStatus.SUCCESS);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
       console.error('Caption generation failed:', errorMessage);
       setError(`Failed to generate captions. ${errorMessage}`);
-      setStatus(AppStatus.ERROR);
+      setStatus(AppStatus.IDLE);
     }
-  }, [audioFile]);
+  }, [audioFile, wordsPerLine]);
 
   const handleDownload = () => {
     const blob = new Blob([srtCaptions], { type: 'text/plain' });
@@ -68,14 +68,33 @@ const App: React.FC = () => {
     setError('');
   };
 
-  // FIX: Refactored UI rendering logic to be mutually exclusive for each status,
-  // which fixes the original TypeScript error and improves UI consistency.
   const renderMainContent = () => {
     switch (status) {
       case AppStatus.IDLE:
         return (
           <div className="space-y-6">
+            {error && (
+              <div className="text-center p-3 bg-red-900/50 border border-red-500/50 rounded-lg">
+                <p className="text-sm text-red-400">{error}</p>
+              </div>
+            )}
             <FileUpload onFileSelect={handleFileSelect} currentFile={audioFile} />
+            <div className="space-y-3 pt-2">
+              <label htmlFor="words-slider" className="flex justify-between text-sm font-medium text-gray-300 px-1">
+                  <span>Words per caption line</span>
+                  <span className="font-bold text-cyan-400 text-base tabular-nums">{wordsPerLine}</span>
+              </label>
+              <input
+                  id="words-slider"
+                  type="range"
+                  min="1"
+                  max="10"
+                  value={wordsPerLine}
+                  onChange={(e) => setWordsPerLine(Number(e.target.value))}
+                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                  aria-label="Words per caption line"
+              />
+            </div>
             <button
               onClick={handleGenerate}
               disabled={!audioFile}
@@ -101,21 +120,6 @@ const App: React.FC = () => {
             onReset={resetState}
             fileName={audioFile?.name || 'your_file'}
           />
-        );
-      case AppStatus.ERROR:
-        return (
-          <div className="space-y-6">
-            <FileUpload onFileSelect={handleFileSelect} currentFile={audioFile} />
-            <div className="text-center p-4">
-              <p className="text-red-400 mb-4">{error}</p>
-              <button
-                onClick={resetState}
-                className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded-lg transition-colors"
-              >
-                Try Again
-              </button>
-            </div>
-          </div>
         );
       default:
         return null;
