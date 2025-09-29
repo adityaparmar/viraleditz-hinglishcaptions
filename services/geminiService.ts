@@ -1,4 +1,3 @@
-
 import { GoogleGenAI } from "@google/genai";
 
 const API_KEY = process.env.API_KEY;
@@ -12,29 +11,31 @@ const ai = new GoogleGenAI({ apiKey: API_KEY });
 const createPrompt = (wordsPerLine: number): string => {
   const wordOrWords = wordsPerLine === 1 ? 'word' : 'words';
 
-  const exampleText = wordsPerLine === 1
-      ? `1
-00:00:01,234 --> 00:00:01,567
-Hello,
+  // Dynamically generate a relevant example based on the selected word count
+  const generateExample = () => {
+    const sampleWords = "Hello aap kaise hain? This is a sample sentence for the example.".split(' ');
+    const lines = [];
+    let currentLine = [];
 
-2
-00:00:01,600 --> 00:00:01,950
-aap
+    for (const word of sampleWords) {
+      currentLine.push(word);
+      if (currentLine.length >= wordsPerLine) {
+        lines.push(currentLine.join(' '));
+        currentLine = [];
+      }
+    }
+    if (currentLine.length > 0) {
+      lines.push(currentLine.join(' '));
+    }
 
-3
-00:00:02,100 --> 00:00:02,500
-kaise
+    return lines.map((line, index) => {
+      const startSec = (index * 2) + 1;
+      const endSec = startSec + 1;
+      return `${index + 1}\n00:00:${String(startSec).padStart(2, '0')},234 --> 00:00:${String(endSec).padStart(2, '0')},500\n${line}`;
+    }).join('\n\n');
+  };
 
-4
-00:00:02,600 --> 00:00:03,100
-hain?`
-      : `1
-00:00:01,234 --> 00:00:02,500
-Hello, aap kaise
-
-2
-00:00:02,600 --> 00:00:04,100
-hain? This is an example.`;
+  const exampleText = generateExample();
 
   return `
 You are an expert audio transcriber specializing in Hinglish. Your task is to transcribe the provided audio file and format the output as a SubRip Text (.srt) file.
@@ -42,12 +43,13 @@ You are an expert audio transcriber specializing in Hinglish. Your task is to tr
 Instructions:
 1.  Listen to the audio carefully.
 2.  Transcribe the speech into Hinglish (Hindi written using the Roman alphabet).
-3.  Create caption entries where each entry contains **approximately ${wordsPerLine} ${wordOrWords}**. Try to break lines at natural pauses if possible, but prioritize keeping the word count close to the requested number.
-4.  Create accurate timestamps for each caption entry.
-5.  Format the entire output strictly as an SRT file. Each entry must contain the sequential number, timestamp, and the transcribed text.
-6.  Do not include any other text, explanations, or notes in your response. The output must be only the raw SRT content.
+3.  Format the transcription into caption entries. Each caption line must have a **STRICT MAXIMUM of ${wordsPerLine} ${wordOrWords}**.
+4.  You MUST adhere to this word count limit for every single caption line. Prioritize the word count rule above all else. Break lines at natural pauses only if it does not violate the word count limit.
+5.  Create accurate timestamps for each caption entry.
+6.  Format the entire output strictly as an SRT file. Each entry must contain the sequential number, timestamp, and the transcribed text.
+7.  Do not include any other text, explanations, or notes in your response. The output must be only the raw SRT content.
 
-Example of expected output format (this is just a guide, the number of words per line in your output should be around ${wordsPerLine}):
+Example of expected output format (this is a guide for the SRT structure; you MUST follow the word count rule from instruction #3):
 ${exampleText}
 `;
 };
